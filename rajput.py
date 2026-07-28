@@ -7,30 +7,16 @@ import io
 # --- STREAMLIT UI CONFIGURATION ---
 st.set_page_config(page_title="Rajput Book Depot", page_icon="📚", layout="wide")
 
-# --- CUSTOM CSS FOR LOGO RESIZING & CENTERING ---
+# --- CUSTOM CSS FOR SIDEBAR & STYLING ---
 st.markdown("""
     <style>
-        /* Center align headings and content */
-        .centered-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-        }
         /* Reduce sidebar logo size */
         [data-testid="stSidebar"] img {
-            width: 120px;
+            width: 110px;
             margin-left: auto;
             margin-right: auto;
             display: block;
             border-radius: 50%;
-        }
-        /* Reduce login logo size */
-        .login-logo {
-            max-width: 150px;
-            display: block;
-            margin-left: auto;
-            margin-right: auto;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -158,16 +144,20 @@ if "username" not in st.session_state:
 if "role" not in st.session_state:
     st.session_state.role = ""
 
-# --- LOGIN SCREEN (CENTER-ALIGNED) ---
+# --- LOGIN SCREEN (CENTERED LOGO DIRECTLY ABOVE TITLE) ---
 if not st.session_state.authenticated:
+    # Use 3 columns to center everything perfectly
     col_l1, col_l2, col_l3 = st.columns([1, 1.2, 1])
     with col_l2:
-        try:
-            st.image("logo.png", width=140)
-        except Exception:
-            st.title("📚 Rajput Book Depot")
+        # Inner columns to center the image precisely inside the middle column
+        img_col1, img_col2, img_col3 = st.columns([1, 1.5, 1])
+        with img_col2:
+            try:
+                st.image("logo.png", width=130)
+            except Exception:
+                st.title("📚")
         
-        st.markdown("<h2 style='text-align: center;'>🔒 System Login Portal</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: center; margin-top: 0px;'>🔒 System Login Portal</h2>", unsafe_allow_html=True)
         
         with st.form("login_form"):
             username_input = st.text_input("Username")
