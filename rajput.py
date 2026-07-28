@@ -801,3 +801,7 @@ elif choice == "User Administration":
                             st.success(f"Successfully updated role for '{u_name}'!")
                         conn.commit()
                         st.rerun()
+
+# --- FOOTER ---
+st.markdown("---")
+st.markdown("<div style='text-align: center; color: gray; font-size: 14px;'>Powered By <b>Tahir Shafi +923008320000</b></div>", unsafe_allow_html=True)
