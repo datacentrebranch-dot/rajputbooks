@@ -153,8 +153,8 @@ if "role" not in st.session_state:
 if not st.session_state.authenticated:
     col_l1, col_l2, col_l3 = st.columns([1, 1.2, 1])
     with col_l2:
-        # Centered logo and text aligned identically using a single inner column layout
-        img_col1, img_col2, img_col3 = st.columns([1, 2, 1])
+        # Perfectly centering the logo by using identical column weights inside the container layout
+        img_col1, img_col2, img_col3 = st.columns([1.3, 2, 1.3])
         with img_col2:
             try:
                 st.image("logo.png", width=180)
