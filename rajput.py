@@ -157,7 +157,7 @@ if not st.session_state.authenticated:
             except Exception:
                 st.title("📚")
         
-        st.markdown("<h2 style='text-align: center; margin-top: 0px;'>🔒 System Login Portal</h2>", unsafe_allow_html=True)
+        st.markdown("<h2 style='text-align: center; margin-top: 0px;'>🔒 Welcome to Rajput Books</h2>", unsafe_allow_html=True)
         
         with st.form("login_form"):
             username_input = st.text_input("Username")
