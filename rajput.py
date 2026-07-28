@@ -180,7 +180,6 @@ if not st.session_state.authenticated:
                 else:
                     st.error("Invalid Username or Password. Please try again.")
         
-        st.info("Default Credentials — Admin: `admin` / `admin123` | Cashier: `cashier` / `cashier123`")
     st.stop()
 
 # --- APP HEADER BANNER ---
