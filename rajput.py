@@ -2,6 +2,7 @@ import streamlit as st
 import sqlite3
 import pandas as pd
 from datetime import datetime
+import io
 
 # --- DATABASE SETUP ---
 def init_db():
@@ -106,10 +107,10 @@ ACADEMIC_CLASSES = [
 st.set_page_config(page_title="Rajput Book Depot", page_icon="📚", layout="wide")
 
 st.title("📚 Rajput Book Depot")
-st.subheader("Inventory, Sales, Purchase & Supervisor Reports")
+st.subheader("Inventory, Sales, Purchase & Data Migration Suite")
 
 # Sidebar Navigation
-menu = ["Dashboard", "Inventory Management", "Point of Sale (POS)", "Purchase Stock", "Expense Tracker", "Reports & History"]
+menu = ["Dashboard", "Inventory Management", "Point of Sale (POS)", "Purchase Stock", "Expense Tracker", "Reports & History", "Data Migration"]
 choice = st.sidebar.selectbox("Navigation", menu)
 
 # --- 1. DASHBOARD ---
@@ -469,17 +470,14 @@ elif choice == "Reports & History":
     elif report_type == "Comprehensive Financial Statement (P&L)":
         st.subheader("Period Profit & Loss Statement")
         
-        # Calculate Revenue
         cursor.execute("SELECT SUM(total_amount) FROM sales WHERE sale_date BETWEEN ? AND ?", (start_str, end_str))
         rev_res = cursor.fetchone()[0]
         period_revenue = rev_res if rev_res else 0.0
         
-        # Calculate Purchases
         cursor.execute("SELECT SUM(total_amount) FROM purchases WHERE purchase_date BETWEEN ? AND ?", (start_str, end_str))
         purch_res = cursor.fetchone()[0]
         period_purchases = purch_res if purch_res else 0.0
         
-        # Calculate Expenses
         cursor.execute("SELECT SUM(amount) FROM expenses WHERE expense_date BETWEEN ? AND ?", (start_str, end_str))
         exp_res = cursor.fetchone()[0]
         period_expenses = exp_res if exp_res else 0.0
@@ -500,3 +498,76 @@ elif choice == "Reports & History":
             st.success("The business is operating at a net profit for this selected duration.")
         else:
             st.error("The business has a net deficit for this selected duration.")
+
+# --- 7. DATA MIGRATION ---
+elif choice == "Data Migration":
+    st.header("Bulk Data Migration & Template Download")
+    st.write("Download the template Excel file below, fill in your old software's inventory data according to the columns, and upload it back here to import everything instantly.")
+    
+    # Generate Sample Excel Template for download
+    sample_data = [{
+        "isbn": "978-969000001",
+        "title": "Sample English Textbook",
+        "author": "Publisher Name",
+        "school_group": "Oxford / Cambridge System",
+        "academic_class": "Class 1",
+        "category": "Textbook",
+        "purchase_price": 350.0,
+        "selling_price": 450.0,
+        "stock_quantity": 50
+    }]
+    df_template = pd.DataFrame(sample_data)
+    
+    output = io.BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df_template.to_excel(writer, index=False, sheet_name='Inventory_Template')
+    excel_data = output.getvalue()
+    
+    st.download_button(
+        label="📥 Download Inventory Excel Template",
+        data=excel_data,
+        file_name="rajput_book_depot_inventory_template.xlsx",
+        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    )
+    
+    st.markdown("---")
+    st.subheader("Upload Filled Excel File")
+    uploaded_file = st.file_uploader("Upload your completed Excel file (.xlsx)", type=["xlsx"])
+    
+    if uploaded_file is not None:
+        try:
+            df_upload = pd.read_excel(uploaded_file)
+            st.write("Preview of Uploaded Data:")
+            st.dataframe(df_upload.head(), use_container_width=True)
+            
+            if st.button("Confirm & Import Data into Database"):
+                success_count = 0
+                error_count = 0
+                
+                for _, row in df_upload.iterrows():
+                    try:
+                        cursor.execute("""
+                            INSERT OR IGNORE INTO books (isbn, title, author, school_group, academic_class, category, purchase_price, selling_price, stock_quantity)
+                            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                        """, (
+                            str(row["isbn"]),
+                            str(row["title"]),
+                            str(row.get("author", "")),
+                            str(row.get("school_group", "General / Public Board")),
+                            str(row.get("academic_class", "Class 1")),
+                            str(row.get("category", "Textbook")),
+                            float(row.get("purchase_price", 0.0)),
+                            float(row.get("selling_price", 0.0)),
+                            int(row.get("stock_quantity", 0))
+                        ))
+                        if cursor.rowcount > 0:
+                            success_count += 1
+                        else:
+                            error_count += 1
+                    except Exception:
+                        error_count += 1
+                        
+                conn.commit()
+                st.success(f"Migration completed! Successfully imported {success_count} books. (Skipped/Duplicates: {error_count})")
+        except Exception as e:
+            st.error(f"Error reading Excel file: {e}")
