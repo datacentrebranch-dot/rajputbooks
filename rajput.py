@@ -4,6 +4,9 @@ import pandas as pd
 from datetime import datetime
 import io
 
+# --- STREAMLIT UI CONFIGURATION ---
+st.set_page_config(page_title="Rajput Book Depot", page_icon="📚", layout="wide")
+
 # --- DATABASE SETUP ---
 def init_db():
     conn = sqlite3.connect("rajput_book_depot.db", check_same_thread=False)
@@ -79,6 +82,23 @@ def init_db():
         )
     """)
     
+    # Users Table for Login Management
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT UNIQUE,
+            password TEXT,
+            role TEXT
+        )
+    """)
+    
+    # Insert default Admin and Cashier accounts if none exist
+    cursor.execute("SELECT COUNT(*) FROM users")
+    if cursor.fetchone()[0] == 0:
+        cursor.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", ("admin", "admin123", "Administrator"))
+        cursor.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", ("cashier", "cashier123", "Cashier"))
+        conn.commit()
+
     conn.commit()
     return conn
 
@@ -103,19 +123,69 @@ ACADEMIC_CLASSES = [
     "B.A / B.Sc / BS (Undergraduate)", "Masters (M.A / M.Sc / MS)"
 ]
 
-# --- STREAMLIT UI CONFIGURATION ---
-st.set_page_config(page_title="Rajput Book Depot", page_icon="📚", layout="wide")
+# --- SESSION STATE MANAGEMENT FOR AUTHENTICATION ---
+if "authenticated" not in st.session_state:
+    st.session_state.authenticated = False
+if "username" not in st.session_state:
+    st.session_state.username = ""
+if "role" not in st.session_state:
+    st.session_state.role = ""
 
-# Displaying the Custom Banner Header
+# --- LOGIN SCREEN ---
+if not st.session_state.authenticated:
+    col_l1, col_l2, col_l3 = st.columns([1, 1.5, 1])
+    with col_l2:
+        try:
+            st.image("logo.png", use_container_width=True)
+        except Exception:
+            st.title("📚 Rajput Book Depot")
+        
+        st.subheader("🔒 System Login Portal")
+        
+        with st.form("login_form"):
+            username_input = st.text_input("Username")
+            password_input = st.text_input("Password", type="password")
+            submit_login = st.form_submit_button("Login to System", use_container_width=True)
+            
+            if submit_login:
+                cursor.execute("SELECT role FROM users WHERE username = ? AND password = ?", (username_input, password_input))
+                user_record = cursor.fetchone()
+                if user_record:
+                    st.session_state.authenticated = True
+                    st.session_state.username = username_input
+                    st.session_state.role = user_record[0]
+                    st.success("Login successful! Loading application...")
+                    st.rerun()
+                else:
+                    st.error("Invalid Username or Password. Please try again.")
+        
+        st.info("Default Credentials — Admin: `admin` / `admin123` | Cashier: `cashier` / `cashier123`")
+    st.stop()
+
+# --- APP HEADER BANNER ---
 try:
     st.image("banner.png", use_container_width=True)
 except Exception:
     st.title("📚 Rajput Book Depot")
-    st.warning("Banner image 'banner.png' not found in the directory. Please save your banner as 'banner.png'.")
 
-# --- SIDEBAR NAVIGATION WITH ATTRACTIVE BUTTONS ---
+# --- SIDEBAR LOGO & USER PROFILE ---
+try:
+    st.sidebar.image("logo.png", use_container_width=True)
+except Exception:
+    st.sidebar.subheader("📚 Rajput Book Depot")
+
+st.sidebar.markdown(f"👤 **Logged in as:** {st.session_state.username}  \n🛡️ **Role:** `{st.session_state.role}`")
+
+if st.sidebar.button("🚪 Logout", use_container_width=True):
+    st.session_state.authenticated = False
+    st.session_state.username = ""
+    st.session_state.role = ""
+    st.rerun()
+
+st.sidebar.markdown("---")
 st.sidebar.markdown("### 🧭 Navigation Menu")
 
+# --- SIDEBAR NAVIGATION BUTTONS ---
 if "nav_choice" not in st.session_state:
     st.session_state.nav_choice = "Dashboard"
 
@@ -130,7 +200,7 @@ menu_items = {
 }
 
 for key, label in menu_items.items():
-    # Highlight the currently active page using custom button styling or primary type
+    # Restrict Cashiers from entering sensitive manager sections if needed, or leave open as per workflow
     btn_type = "primary" if st.session_state.nav_choice == key else "secondary"
     if st.sidebar.button(label, key=f"nav_{key}", use_container_width=True, type=btn_type):
         st.session_state.nav_choice = key
@@ -351,6 +421,7 @@ elif choice == "Point of Sale (POS)":
             Invoice No : {invoice_no}
             Date/Time  : {sale_date}
             Customer   : {customer_name}
+            Cashier    : {st.session_state.username}
             ----------------------------------------
             Class/Level: {acad_class}
             Item       : {title}
