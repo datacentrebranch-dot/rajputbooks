@@ -221,7 +221,8 @@ menu_items = {
     "Purchase Stock": "📦 Purchase Stock",
     "Expense Tracker": "💸 Expense Tracker",
     "Reports & History": "📈 Reports & History",
-    "Data Migration": "⚡ Data Migration"
+    "Data Migration": "⚡ Data Migration",
+    "User Administration": "👥 User Administration"
 }
 
 for key, label in menu_items.items():
@@ -732,3 +733,70 @@ elif choice == "Data Migration":
                 st.success(f"Migration completed! Successfully imported {success_count} books. (Skipped/Duplicates: {error_count})")
         except Exception as e:
             st.error(f"Error reading file: {e}")
+
+# --- 8. USER ADMINISTRATION ---
+elif choice == "User Administration":
+    st.header("👥 User Administration Panel")
+    
+    if st.session_state.role != "Administrator":
+        st.error("Access Denied: You must be logged in as an Administrator to manage system users.")
+    else:
+        admin_tab1, admin_tab2, admin_tab3 = st.tabs(["List Existing Users", "Create New User", "Edit User & Modify Password"])
+        
+        with admin_tab1:
+            st.subheader("Existing System Users")
+            cursor.execute("SELECT id, username, role FROM users")
+            users_list = cursor.fetchall()
+            if users_list:
+                df_users = pd.DataFrame(users_list, columns=["ID", "Username", "Role"])
+                st.dataframe(df_users, use_container_width=True)
+            else:
+                st.info("No users found.")
+                
+        with admin_tab2:
+            st.subheader("Create a New User Account")
+            with st.form("create_user_form"):
+                new_username = st.text_input("New Username")
+                new_password = st.text_input("Password", type="password")
+                new_role = st.selectbox("User Role", ["Administrator", "Cashier"])
+                submit_new_user = st.form_submit_button("Create User")
+                
+                if submit_new_user:
+                    if new_username and new_password:
+                        try:
+                            cursor.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", (new_username, new_password, new_role))
+                            conn.commit()
+                            st.success(f"User '{new_username}' created successfully with role '{new_role}'!")
+                        except sqlite3.IntegrityError:
+                            st.error(f"Username '{new_username}' already exists. Please choose a different username.")
+                    else:
+                        st.warning("Please enter both username and password.")
+                        
+        with admin_tab3:
+            st.subheader("Edit User Role / Modify Password")
+            cursor.execute("SELECT id, username, role FROM users")
+            all_users = cursor.fetchall()
+            
+            if not all_users:
+                st.info("No users available to edit.")
+            else:
+                user_dict = {u[1]: u for u in all_users}
+                selected_edit_username = st.selectbox("Select User to Edit", options=list(user_dict.keys()))
+                
+                selected_user_data = user_dict[selected_edit_username]
+                u_id, u_name, u_role = selected_user_data
+                
+                with st.form("edit_user_form"):
+                    edit_role = st.selectbox("Modify Role", ["Administrator", "Cashier"], index=0 if u_role=="Administrator" else 1)
+                    modify_password = st.text_input("New Password (Leave blank to keep unchanged)", type="password")
+                    
+                    submit_edit = st.form_submit_button("Update User Details")
+                    
+                    if submit_edit:
+                        if modify_password.strip() != "":
+                            cursor.execute("UPDATE users SET role = ?, password = ? WHERE id = ?", (edit_role, modify_password, u_id))
+                            st.success(f"Successfully updated role and password for '{u_name}'!")
+                        else:
+                            cursor.execute("UPDATE users SET role = ? WHERE id = ?", (edit_role, u_id))
+                            st.success(f"Successfully updated role for '{u_name}'!")
+                        conn.commit()
