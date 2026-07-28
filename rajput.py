@@ -163,12 +163,12 @@ if not st.session_state.authenticated:
         st.markdown("<h2 style='text-align: center; margin-top: 0px;'>🔒 Welcome to Rajput Books</h2>", unsafe_allow_html=True)
         
         with st.form("login_form"):
-            username_input = st.text_input("Username")
-            password_input = st.text_input("Password", type="password")
+            username_input = st.text_input("Username").strip()
+            password_input = st.text_input("Password", type="password").strip()
             submit_login = st.form_submit_button("Login to System", use_container_width=True)
             
             if submit_login:
-                cursor.execute("SELECT role FROM users WHERE username = ? AND password = ?", (username_input, password_input))
+                cursor.execute("SELECT role FROM users WHERE LOWER(TRIM(username)) = LOWER(TRIM(?)) AND TRIM(password) = TRIM(?)", (username_input, password_input))
                 user_record = cursor.fetchone()
                 if user_record:
                     st.session_state.authenticated = True
@@ -656,7 +656,7 @@ elif choice == "Reports & History":
             st.metric("Net Period Profit", f"Rs. {period_net_profit:,.2f}", delta=f"Rs. {period_net_profit:,.2f}")
             
         st.markdown("---")
-        if period_net_profit >= 1:
+        if period_net_profit >= 0:
             st.success("The business is operating at a net profit for this selected duration.")
         else:
             st.error("The business has a net deficit for this selected duration.")
@@ -764,9 +764,9 @@ elif choice == "User Administration":
                 if submit_new_user:
                     if new_username and new_password:
                         try:
-                            cursor.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", (new_username, new_password, new_role))
+                            cursor.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", (new_username.strip(), new_password.strip(), new_role))
                             conn.commit()
-                            st.success(f"User '{new_username}' created successfully with role '{new_role}'!")
+                            st.success(f"User '{new_username.strip()}' created successfully with role '{new_role}'!")
                         except sqlite3.IntegrityError:
                             st.error(f"Username '{new_username}' already exists. Please choose a different username.")
                     else:
@@ -794,7 +794,7 @@ elif choice == "User Administration":
                     
                     if submit_edit:
                         if modify_password.strip() != "":
-                            cursor.execute("UPDATE users SET role = ?, password = ? WHERE id = ?", (edit_role, modify_password, u_id))
+                            cursor.execute("UPDATE users SET role = ?, password = ? WHERE id = ?", (edit_role, modify_password.strip(), u_id))
                             st.success(f"Successfully updated role and password for '{u_name}'!")
                         else:
                             cursor.execute("UPDATE users SET role = ? WHERE id = ?", (edit_role, u_id))
