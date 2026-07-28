@@ -656,7 +656,7 @@ elif choice == "Reports & History":
             st.metric("Net Period Profit", f"Rs. {period_net_profit:,.2f}", delta=f"Rs. {period_net_profit:,.2f}")
             
         st.markdown("---")
-        if period_net_profit >= 0:
+        if period_net_profit >= 1:
             st.success("The business is operating at a net profit for this selected duration.")
         else:
             st.error("The business has a net deficit for this selected duration.")
@@ -755,7 +755,7 @@ elif choice == "User Administration":
                 
         with admin_tab2:
             st.subheader("Create a New User Account")
-            with st.form("create_user_form"):
+            with st.form("create_user_form", clear_on_submit=True):
                 new_username = st.text_input("New Username")
                 new_password = st.text_input("Password", type="password")
                 new_role = st.selectbox("User Role", ["Administrator", "Cashier"])
@@ -781,14 +781,14 @@ elif choice == "User Administration":
                 st.info("No users available to edit.")
             else:
                 user_dict = {u[1]: u for u in all_users}
-                selected_edit_username = st.selectbox("Select User to Edit", options=list(user_dict.keys()))
+                selected_edit_username = st.selectbox("Select User to Edit", options=list(user_dict.keys()), key="select_edit_user_box")
                 
                 selected_user_data = user_dict[selected_edit_username]
                 u_id, u_name, u_role = selected_user_data
                 
                 with st.form("edit_user_form"):
-                    edit_role = st.selectbox("Modify Role", ["Administrator", "Cashier"], index=0 if u_role=="Administrator" else 1)
-                    modify_password = st.text_input("New Password (Leave blank to keep unchanged)", type="password")
+                    edit_role = st.selectbox("Modify Role", ["Administrator", "Cashier"], index=0 if u_role=="Administrator" else 1, key="edit_role_box")
+                    modify_password = st.text_input("New Password (Leave blank to keep unchanged)", type="password", key="edit_pass_box")
                     
                     submit_edit = st.form_submit_button("Update User Details")
                     
@@ -800,3 +800,4 @@ elif choice == "User Administration":
                             cursor.execute("UPDATE users SET role = ? WHERE id = ?", (edit_role, u_id))
                             st.success(f"Successfully updated role for '{u_name}'!")
                         conn.commit()
+                        st.rerun()
