@@ -153,8 +153,8 @@ if "role" not in st.session_state:
 if not st.session_state.authenticated:
     col_l1, col_l2, col_l3 = st.columns([1, 1.2, 1])
     with col_l2:
-        # Centering and making the logo bigger on the login screen
-        img_col1, img_col2, img_col3 = st.columns([0.5, 2, 0.5])
+        # Centered logo and text aligned identically using a single inner column layout
+        img_col1, img_col2, img_col3 = st.columns([1, 2, 1])
         with img_col2:
             try:
                 st.image("logo.png", width=180)
