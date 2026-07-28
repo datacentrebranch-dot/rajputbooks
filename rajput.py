@@ -180,6 +180,8 @@ if not st.session_state.authenticated:
                 else:
                     st.error("Invalid Username or Password. Please try again.")
         
+    st.markdown("---")
+    st.markdown("<div style='text-align: center; color: gray; font-size: 14px;'>Powered By <b>Tahir Shafi +923008320000</b></div>", unsafe_allow_html=True)
     st.stop()
 
 # --- APP HEADER BANNER ---
