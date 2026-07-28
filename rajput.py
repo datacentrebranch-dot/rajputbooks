@@ -106,8 +106,12 @@ ACADEMIC_CLASSES = [
 # --- STREAMLIT UI CONFIGURATION ---
 st.set_page_config(page_title="Rajput Book Depot", page_icon="📚", layout="wide")
 
-st.title("📚 Rajput Book Depot")
-st.subheader("Inventory, Sales, Purchase & Data Migration Suite")
+# Displaying the Custom Banner Header
+try:
+    st.image("banner.png", use_container_width=True)
+except Exception:
+    st.title("📚 Rajput Book Depot")
+    st.warning("Banner image 'banner.png' not found in the directory. Please save your banner as 'banner.png'.")
 
 # Sidebar Navigation
 menu = ["Dashboard", "Inventory Management", "Point of Sale (POS)", "Purchase Stock", "Expense Tracker", "Reports & History", "Data Migration"]
@@ -117,7 +121,6 @@ choice = st.sidebar.selectbox("Navigation", menu)
 if choice == "Dashboard":
     st.header("Store Financial & Impact Analysis Dashboard")
     
-    # Fetch Core Totals
     cursor.execute("SELECT COUNT(*), SUM(stock_quantity), SUM(stock_quantity * selling_price) FROM books")
     total_titles, total_stock, total_value = cursor.fetchone()
     
@@ -141,7 +144,6 @@ if choice == "Dashboard":
     net_profit = gross_profit - total_expenses
     profit_margin = (net_profit / total_revenue * 100) if total_revenue > 0 else 0.0
 
-    # Top Row Metrics
     col1, col2, col3, col4 = st.columns(4)
     col1.metric("Total Book Titles", f"{total_titles:,}")
     col2.metric("Total Units in Stock", f"{total_stock:,}")
@@ -155,8 +157,6 @@ if choice == "Dashboard":
     col8.metric("Net Profit Margin", f"{profit_margin:.2f}%")
     
     st.markdown("---")
-    
-    # Impact Analysis & Visual Charts Section
     st.subheader("📊 Visual Impact & Financial Breakdown")
     
     tab_chart1, tab_chart2, tab_chart3 = st.tabs(["Financial Cashflow Impact", "Sales by School Group", "Stock Distribution by Category"])
