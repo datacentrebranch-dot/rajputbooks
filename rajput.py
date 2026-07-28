@@ -115,8 +115,9 @@ choice = st.sidebar.selectbox("Navigation", menu)
 
 # --- 1. DASHBOARD ---
 if choice == "Dashboard":
-    st.header("Store Financial & Stock Overview")
+    st.header("Store Financial & Impact Analysis Dashboard")
     
+    # Fetch Core Totals
     cursor.execute("SELECT COUNT(*), SUM(stock_quantity), SUM(stock_quantity * selling_price) FROM books")
     total_titles, total_stock, total_value = cursor.fetchone()
     
@@ -138,18 +139,62 @@ if choice == "Dashboard":
     
     gross_profit = total_revenue - total_purchases
     net_profit = gross_profit - total_expenses
+    profit_margin = (net_profit / total_revenue * 100) if total_revenue > 0 else 0.0
 
+    # Top Row Metrics
     col1, col2, col3, col4 = st.columns(4)
-    col1.metric("Total Book Titles", total_titles)
-    col2.metric("Total Units in Stock", total_stock)
+    col1.metric("Total Book Titles", f"{total_titles:,}")
+    col2.metric("Total Units in Stock", f"{total_stock:,}")
     col3.metric("Inventory Asset Value", f"Rs. {total_value:,.2f}")
     col4.metric("Total Revenue", f"Rs. {total_revenue:,.2f}")
 
-    col5, col6, col7 = st.columns(3)
+    col5, col6, col7, col8 = st.columns(4)
     col5.metric("Total Purchases Outflow", f"Rs. {total_purchases:,.2f}")
     col6.metric("Total Shop Expenses", f"Rs. {total_expenses:,.2f}")
-    col7.metric("Estimated Net Profit", f"Rs. {net_profit:,.2f}", delta=f"Rs. {net_profit:,.2f}")
+    col7.metric("Net Profit", f"Rs. {net_profit:,.2f}", delta=f"Rs. {net_profit:,.2f}")
+    col8.metric("Net Profit Margin", f"{profit_margin:.2f}%")
     
+    st.markdown("---")
+    
+    # Impact Analysis & Visual Charts Section
+    st.subheader("📊 Visual Impact & Financial Breakdown")
+    
+    tab_chart1, tab_chart2, tab_chart3 = st.tabs(["Financial Cashflow Impact", "Sales by School Group", "Stock Distribution by Category"])
+    
+    with tab_chart1:
+        st.write("### Cashflow & Profitability Impact Breakdown")
+        df_cashflow = pd.DataFrame({
+            "Metric": ["Revenue Inflow", "Purchase Outflow", "Shop Expenses", "Net Profit"],
+            "Amount (Rs.)": [total_revenue, total_purchases, total_expenses, net_profit]
+        })
+        st.bar_chart(df_cashflow.set_index("Metric"))
+        
+    with tab_chart2:
+        st.write("### Sales Performance Across School Groups")
+        cursor.execute("""
+            SELECT b.school_group, SUM(si.subtotal) as revenue
+            FROM sales s
+            JOIN sale_items si ON s.id = si.sale_id
+            JOIN books b ON si.book_id = b.id
+            GROUP BY b.school_group
+        """)
+        group_sales = cursor.fetchall()
+        if group_sales:
+            df_group_sales = pd.DataFrame(group_sales, columns=["School Group", "Revenue"])
+            st.bar_chart(df_group_sales.set_index("School Group"))
+        else:
+            st.info("No sales breakdown available by school group yet.")
+            
+    with tab_chart3:
+        st.write("### Stock Distribution Volume by Subject Category")
+        cursor.execute("SELECT category, SUM(stock_quantity) FROM books GROUP BY category")
+        cat_data = cursor.fetchall()
+        if cat_data:
+            df_cat = pd.DataFrame(cat_data, columns=["Category", "Stock Quantity"])
+            st.bar_chart(df_cat.set_index("Category"))
+        else:
+            st.info("No category data found.")
+
     st.markdown("---")
     st.subheader("⚠️ Low Stock Alert (Less than 5 items)")
     cursor.execute("SELECT title, author, school_group, academic_class, stock_quantity, selling_price FROM books WHERE stock_quantity < 5")
@@ -502,9 +547,8 @@ elif choice == "Reports & History":
 # --- 7. DATA MIGRATION ---
 elif choice == "Data Migration":
     st.header("Bulk Data Migration & Template Download")
-    st.write("Download the template Excel file below, fill in your old software's inventory data according to the columns, and upload it back here to import everything instantly.")
+    st.write("Download the template CSV file below, fill in your old software's inventory data according to the columns, and upload it back here to import everything instantly.")
     
-    # Generate Sample Excel Template for download using CSV to guarantee zero missing library dependencies
     sample_data = [{
         "isbn": "978-969000001",
         "title": "Sample English Textbook",
