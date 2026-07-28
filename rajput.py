@@ -10,13 +10,17 @@ st.set_page_config(page_title="Rajput Book Depot", page_icon="📚", layout="wid
 # --- CUSTOM CSS FOR SIDEBAR & STYLING ---
 st.markdown("""
     <style>
-        /* Reduce sidebar logo size */
+        /* Perfectly center the sidebar logo */
         [data-testid="stSidebar"] img {
-            width: 110px;
+            display: block;
             margin-left: auto;
             margin-right: auto;
-            display: block;
             border-radius: 50%;
+        }
+        [data-testid="stSidebar"] [data-testid="stImage"] {
+            text-align: center;
+            display: flex;
+            justify-content: center;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -144,12 +148,10 @@ if "username" not in st.session_state:
 if "role" not in st.session_state:
     st.session_state.role = ""
 
-# --- LOGIN SCREEN (CENTERED LOGO DIRECTLY ABOVE TITLE) ---
+# --- LOGIN SCREEN ---
 if not st.session_state.authenticated:
-    # Use 3 columns to center everything perfectly
     col_l1, col_l2, col_l3 = st.columns([1, 1.2, 1])
     with col_l2:
-        # Inner columns to center the image precisely inside the middle column
         img_col1, img_col2, img_col3 = st.columns([1, 1.5, 1])
         with img_col2:
             try:
