@@ -519,7 +519,7 @@ elif choice == "Data Migration":
     df_template = pd.DataFrame(sample_data)
     
     output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
         df_template.to_excel(writer, index=False, sheet_name='Inventory_Template')
     excel_data = output.getvalue()
     
