@@ -7,6 +7,34 @@ import io
 # --- STREAMLIT UI CONFIGURATION ---
 st.set_page_config(page_title="Rajput Book Depot", page_icon="📚", layout="wide")
 
+# --- CUSTOM CSS FOR LOGO RESIZING & CENTERING ---
+st.markdown("""
+    <style>
+        /* Center align headings and content */
+        .centered-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        /* Reduce sidebar logo size */
+        [data-testid="stSidebar"] img {
+            width: 120px;
+            margin-left: auto;
+            margin-right: auto;
+            display: block;
+            border-radius: 50%;
+        }
+        /* Reduce login logo size */
+        .login-logo {
+            max-width: 150px;
+            display: block;
+            margin-left: auto;
+            margin-right: auto;
+        }
+    </style>
+""", unsafe_allow_html=True)
+
 # --- DATABASE SETUP ---
 def init_db():
     conn = sqlite3.connect("rajput_book_depot.db", check_same_thread=False)
@@ -92,7 +120,6 @@ def init_db():
         )
     """)
     
-    # Insert default Admin and Cashier accounts if none exist
     cursor.execute("SELECT COUNT(*) FROM users")
     if cursor.fetchone()[0] == 0:
         cursor.execute("INSERT INTO users (username, password, role) VALUES (?, ?, ?)", ("admin", "admin123", "Administrator"))
@@ -131,16 +158,16 @@ if "username" not in st.session_state:
 if "role" not in st.session_state:
     st.session_state.role = ""
 
-# --- LOGIN SCREEN ---
+# --- LOGIN SCREEN (CENTER-ALIGNED) ---
 if not st.session_state.authenticated:
-    col_l1, col_l2, col_l3 = st.columns([1, 1.5, 1])
+    col_l1, col_l2, col_l3 = st.columns([1, 1.2, 1])
     with col_l2:
         try:
-            st.image("logo.png", use_container_width=True)
+            st.image("logo.png", width=140)
         except Exception:
             st.title("📚 Rajput Book Depot")
         
-        st.subheader("🔒 System Login Portal")
+        st.markdown("<h2 style='text-align: center;'>🔒 System Login Portal</h2>", unsafe_allow_html=True)
         
         with st.form("login_form"):
             username_input = st.text_input("Username")
@@ -170,11 +197,12 @@ except Exception:
 
 # --- SIDEBAR LOGO & USER PROFILE ---
 try:
-    st.sidebar.image("logo.png", use_container_width=True)
+    st.sidebar.image("logo.png", width=110)
 except Exception:
     st.sidebar.subheader("📚 Rajput Book Depot")
 
-st.sidebar.markdown(f"👤 **Logged in as:** {st.session_state.username}  \n🛡️ **Role:** `{st.session_state.role}`")
+st.sidebar.markdown(f"<div style='text-align: center;'>👤 <b>{st.session_state.username}</b><br>🛡️ <code>{st.session_state.role}</code></div>", unsafe_allow_html=True)
+st.sidebar.markdown("")
 
 if st.sidebar.button("🚪 Logout", use_container_width=True):
     st.session_state.authenticated = False
@@ -200,7 +228,6 @@ menu_items = {
 }
 
 for key, label in menu_items.items():
-    # Restrict Cashiers from entering sensitive manager sections if needed, or leave open as per workflow
     btn_type = "primary" if st.session_state.nav_choice == key else "secondary"
     if st.sidebar.button(label, key=f"nav_{key}", use_container_width=True, type=btn_type):
         st.session_state.nav_choice = key
