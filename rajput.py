@@ -113,9 +113,30 @@ except Exception:
     st.title("📚 Rajput Book Depot")
     st.warning("Banner image 'banner.png' not found in the directory. Please save your banner as 'banner.png'.")
 
-# Sidebar Navigation
-menu = ["Dashboard", "Inventory Management", "Point of Sale (POS)", "Purchase Stock", "Expense Tracker", "Reports & History", "Data Migration"]
-choice = st.sidebar.selectbox("Navigation", menu)
+# --- SIDEBAR NAVIGATION WITH ATTRACTIVE BUTTONS ---
+st.sidebar.markdown("### 🧭 Navigation Menu")
+
+if "nav_choice" not in st.session_state:
+    st.session_state.nav_choice = "Dashboard"
+
+menu_items = {
+    "Dashboard": "📊 Dashboard & Impact",
+    "Inventory Management": "📚 Inventory Management",
+    "Point of Sale (POS)": "🛒 Point of Sale (POS)",
+    "Purchase Stock": "📦 Purchase Stock",
+    "Expense Tracker": "💸 Expense Tracker",
+    "Reports & History": "📈 Reports & History",
+    "Data Migration": "⚡ Data Migration"
+}
+
+for key, label in menu_items.items():
+    # Highlight the currently active page using custom button styling or primary type
+    btn_type = "primary" if st.session_state.nav_choice == key else "secondary"
+    if st.sidebar.button(label, key=f"nav_{key}", use_container_width=True, type=btn_type):
+        st.session_state.nav_choice = key
+        st.rerun()
+
+choice = st.session_state.nav_choice
 
 # --- 1. DASHBOARD ---
 if choice == "Dashboard":
