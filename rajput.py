@@ -10,17 +10,18 @@ st.set_page_config(page_title="Rajput Book Depot", page_icon="📚", layout="wid
 # --- CUSTOM CSS FOR SIDEBAR & STYLING ---
 st.markdown("""
     <style>
-        /* Perfectly center the sidebar logo */
+        /* Force centering on all image containers inside the sidebar */
+        [data-testid="stSidebar"] [data-testid="stImage"] {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0 auto;
+        }
         [data-testid="stSidebar"] img {
             display: block;
             margin-left: auto;
             margin-right: auto;
             border-radius: 50%;
-        }
-        [data-testid="stSidebar"] [data-testid="stImage"] {
-            text-align: center;
-            display: flex;
-            justify-content: center;
         }
     </style>
 """, unsafe_allow_html=True)
@@ -187,23 +188,27 @@ try:
 except Exception:
     st.title("📚 Rajput Book Depot")
 
-# --- SIDEBAR LOGO & USER PROFILE ---
-try:
-    st.sidebar.image("logo.png", width=110)
-except Exception:
-    st.sidebar.subheader("📚 Rajput Book Depot")
+# --- SIDEBAR LOGO & USER PROFILE (CENTERED VIA COLUMNS) ---
+with st.sidebar:
+    # Using symmetrical columns to center-align the logo natively in Streamlit layout
+    col_empty1, col_logo, col_empty2 = st.columns([1, 2, 1])
+    with col_logo:
+        try:
+            st.image("logo.png", width=110)
+        except Exception:
+            st.subheader("📚")
 
-st.sidebar.markdown(f"<div style='text-align: center;'>👤 <b>{st.session_state.username}</b><br>🛡️ <code>{st.session_state.role}</code></div>", unsafe_allow_html=True)
-st.sidebar.markdown("")
+    st.markdown(f"<div style='text-align: center;'>👤 <b>{st.session_state.username}</b><br>🛡️ <code>{st.session_state.role}</code></div>", unsafe_allow_html=True)
+    st.markdown("")
 
-if st.sidebar.button("🚪 Logout", use_container_width=True):
-    st.session_state.authenticated = False
-    st.session_state.username = ""
-    st.session_state.role = ""
-    st.rerun()
+    if st.button("🚪 Logout", use_container_width=True):
+        st.session_state.authenticated = False
+        st.session_state.username = ""
+        st.session_state.role = ""
+        st.rerun()
 
-st.sidebar.markdown("---")
-st.sidebar.markdown("### 🧭 Navigation Menu")
+    st.markdown("---")
+    st.markdown("### 🧭 Navigation Menu")
 
 # --- SIDEBAR NAVIGATION BUTTONS ---
 if "nav_choice" not in st.session_state:
