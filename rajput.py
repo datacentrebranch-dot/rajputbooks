@@ -504,7 +504,7 @@ elif choice == "Data Migration":
     st.header("Bulk Data Migration & Template Download")
     st.write("Download the template Excel file below, fill in your old software's inventory data according to the columns, and upload it back here to import everything instantly.")
     
-    # Generate Sample Excel Template for download
+    # Generate Sample Excel Template for download using CSV to guarantee zero missing library dependencies
     sample_data = [{
         "isbn": "978-969000001",
         "title": "Sample English Textbook",
@@ -518,25 +518,26 @@ elif choice == "Data Migration":
     }]
     df_template = pd.DataFrame(sample_data)
     
-    output = io.BytesIO()
-    with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-        df_template.to_excel(writer, index=False, sheet_name='Inventory_Template')
-    excel_data = output.getvalue()
+    csv_data = df_template.to_csv(index=False).encode('utf-8')
     
     st.download_button(
-        label="📥 Download Inventory Excel Template",
-        data=excel_data,
-        file_name="rajput_book_depot_inventory_template.xlsx",
-        mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        label="📥 Download Inventory CSV Template",
+        data=csv_data,
+        file_name="rajput_book_depot_inventory_template.csv",
+        mime="text/csv"
     )
     
     st.markdown("---")
-    st.subheader("Upload Filled Excel File")
-    uploaded_file = st.file_uploader("Upload your completed Excel file (.xlsx)", type=["xlsx"])
+    st.subheader("Upload Filled CSV / Excel File")
+    uploaded_file = st.file_uploader("Upload your completed file (.csv or .xlsx)", type=["csv", "xlsx"])
     
     if uploaded_file is not None:
         try:
-            df_upload = pd.read_excel(uploaded_file)
+            if uploaded_file.name.endswith('.csv'):
+                df_upload = pd.read_csv(uploaded_file)
+            else:
+                df_upload = pd.read_excel(uploaded_file)
+                
             st.write("Preview of Uploaded Data:")
             st.dataframe(df_upload.head(), use_container_width=True)
             
@@ -570,4 +571,4 @@ elif choice == "Data Migration":
                 conn.commit()
                 st.success(f"Migration completed! Successfully imported {success_count} books. (Skipped/Duplicates: {error_count})")
         except Exception as e:
-            st.error(f"Error reading Excel file: {e}")
+            st.error(f"Error reading file: {e}")
