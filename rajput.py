@@ -8,7 +8,7 @@ def init_db():
     conn = sqlite3.connect("rajput_book_depot.db", check_same_thread=False)
     cursor = conn.cursor()
     
-    # Books Table (Updated with school_group and academic_class)
+    # Books Table (Checking and adding missing columns safely for existing databases)
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS books (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -23,6 +23,14 @@ def init_db():
             stock_quantity INTEGER
         )
     """)
+    
+    # Safely migrate columns if an older database version already exists without them
+    cursor.execute("PRAGMA table_info(books)")
+    existing_columns = [col[1] for col in cursor.fetchall()]
+    if "school_group" not in existing_columns:
+        cursor.execute("ALTER TABLE books ADD COLUMN school_group TEXT")
+    if "academic_class" not in existing_columns:
+        cursor.execute("ALTER TABLE books ADD COLUMN academic_class TEXT")
     
     # Sales Table
     cursor.execute("""
@@ -221,7 +229,6 @@ elif choice == "Inventory Management":
 elif choice == "Point of Sale (POS)":
     st.header("Billing & Sales Counter")
     
-    # Quick filter helper for POS
     pos_group = st.selectbox("Quick Filter POS by School Group", ["All Groups"] + SCHOOL_GROUPS, key="pos_grp")
     
     if pos_group == "All Groups":
