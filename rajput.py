@@ -8,7 +8,7 @@ def init_db():
     conn = sqlite3.connect("rajput_book_depot.db", check_same_thread=False)
     cursor = conn.cursor()
     
-    # Books Table (Checking and adding missing columns safely for existing databases)
+    # Books Table
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS books (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -24,7 +24,6 @@ def init_db():
         )
     """)
     
-    # Safely migrate columns if an older database version already exists without them
     cursor.execute("PRAGMA table_info(books)")
     existing_columns = [col[1] for col in cursor.fetchall()]
     if "school_group" not in existing_columns:
@@ -107,7 +106,7 @@ ACADEMIC_CLASSES = [
 st.set_page_config(page_title="Rajput Book Depot", page_icon="📚", layout="wide")
 
 st.title("📚 Rajput Book Depot")
-st.subheader("Inventory, Sales, Purchase & Class-Wise School Group System")
+st.subheader("Inventory, Sales, Purchase & Supervisor Reports")
 
 # Sidebar Navigation
 menu = ["Dashboard", "Inventory Management", "Point of Sale (POS)", "Purchase Stock", "Expense Tracker", "Reports & History"]
@@ -371,39 +370,133 @@ elif choice == "Expense Tracker":
 
 # --- 6. REPORTS & HISTORY ---
 elif choice == "Reports & History":
-    st.header("Comprehensive Business Records")
+    st.header("Supervisor Reports & Date-Filtered Analytics")
     
-    sub_tab1, sub_tab2, sub_tab3 = st.tabs(["Sales History", "Purchase History", "Expense History"])
+    report_type = st.selectbox("Select Supervisor Report", [
+        "Sales & Revenue Summary", 
+        "Class & School Group Sales Breakdown", 
+        "Purchase Outflow Report", 
+        "Expense Summary Report",
+        "Comprehensive Financial Statement (P&L)"
+    ])
     
-    with sub_tab1:
+    st.markdown("---")
+    st.subheader("📅 Date Range Filters")
+    col_d1, col_d2 = st.columns(2)
+    with col_d1:
+        start_date = st.date_input("Start Date", value=pd.to_datetime("2026-01-01"))
+    with col_d2:
+        end_date = st.date_input("End Date", value=pd.to_datetime("2026-12-31"))
+        
+    start_str = start_date.strftime("%Y-%m-%d 00:00:00")
+    end_str = end_date.strftime("%Y-%m-%d 23:59:59")
+    
+    if report_type == "Sales & Revenue Summary":
+        st.subheader("Sales History & Revenue")
         cursor.execute("""
-            SELECT s.invoice_number, s.sale_date, s.customer_name, b.title, b.academic_class, si.quantity, si.unit_price, s.total_amount
+            SELECT s.invoice_number, s.sale_date, s.customer_name, b.title, b.school_group, b.academic_class, si.quantity, si.unit_price, s.total_amount
             FROM sales s
             JOIN sale_items si ON s.id = si.sale_id
             JOIN books b ON si.book_id = b.id
+            WHERE s.sale_date BETWEEN ? AND ?
             ORDER BY s.id DESC
-        """)
+        """, (start_str, end_str))
         sales_history = cursor.fetchall()
+        
         if sales_history:
-            df_sales = pd.DataFrame(sales_history, columns=["Invoice No", "Date & Time", "Customer", "Book Title", "Class", "Qty Sold", "Unit Price", "Total Amount"])
+            df_sales = pd.DataFrame(sales_history, columns=["Invoice No", "Date & Time", "Customer", "Book Title", "School Group", "Class", "Qty Sold", "Unit Price", "Total Amount"])
             st.dataframe(df_sales, use_container_width=True)
+            total_rev_filtered = df_sales["Total Amount"].sum()
+            st.metric("Total Revenue for Selected Period", f"Rs. {total_rev_filtered:,.2f}")
         else:
-            st.info("No sales records found.")
+            st.info("No sales records found for the selected date range.")
             
-    with sub_tab2:
-        cursor.execute("SELECT id, invoice_number, purchase_date, supplier_name, total_amount FROM purchases ORDER BY id DESC")
+    elif report_type == "Class & School Group Sales Breakdown":
+        st.subheader("Sales Volume by Academic Class & Group")
+        cursor.execute("""
+            SELECT b.school_group, b.academic_class, SUM(si.quantity) as total_qty, SUM(si.subtotal) as total_sales
+            FROM sales s
+            JOIN sale_items si ON s.id = si.sale_id
+            JOIN books b ON si.book_id = b.id
+            WHERE s.sale_date BETWEEN ? AND ?
+            GROUP BY b.school_group, b.academic_class
+            ORDER BY total_sales DESC
+        """, (start_str, end_str))
+        breakdown_data = cursor.fetchall()
+        
+        if breakdown_data:
+            df_breakdown = pd.DataFrame(breakdown_data, columns=["School Group", "Academic Class", "Total Units Sold", "Total Revenue"])
+            st.dataframe(df_breakdown, use_container_width=True)
+        else:
+            st.info("No class-wise sales recorded within this date range.")
+            
+    elif report_type == "Purchase Outflow Report":
+        st.subheader("Supplier Purchases & Stock Investment")
+        cursor.execute("""
+            SELECT id, invoice_number, purchase_date, supplier_name, total_amount
+            FROM purchases
+            WHERE purchase_date BETWEEN ? AND ?
+            ORDER BY id DESC
+        """, (start_str, end_str))
         purch_history = cursor.fetchall()
+        
         if purch_history:
             df_purch = pd.DataFrame(purch_history, columns=["ID", "Invoice No", "Date", "Supplier", "Total Cost"])
             st.dataframe(df_purch, use_container_width=True)
+            total_purch_filtered = df_purch["Total Cost"].sum()
+            st.metric("Total Purchase Outflow for Selected Period", f"Rs. {total_purch_filtered:,.2f}")
         else:
-            st.info("No purchase records found.")
+            st.info("No purchase records found for the selected date range.")
             
-    with sub_tab3:
-        cursor.execute("SELECT id, expense_date, category, amount, description FROM expenses ORDER BY id DESC")
+    elif report_type == "Expense Summary Report":
+        st.subheader("Shop Operational Expenses")
+        cursor.execute("""
+            SELECT id, expense_date, category, amount, description
+            FROM expenses
+            WHERE expense_date BETWEEN ? AND ?
+            ORDER BY id DESC
+        """, (start_str, end_str))
         exp_history = cursor.fetchall()
+        
         if exp_history:
-            df_exp_rep = pd.DataFrame(exp_history, columns=["ID", "Date", "Category", "Amount", "Description"])
-            st.dataframe(df_exp_rep, use_container_width=True)
+            df_exp = pd.DataFrame(exp_history, columns=["ID", "Date", "Category", "Amount", "Description"])
+            st.dataframe(df_exp, use_container_width=True)
+            total_exp_filtered = df_exp["Amount"].sum()
+            st.metric("Total Expenses for Selected Period", f"Rs. {total_exp_filtered:,.2f}")
         else:
-            st.info("No expense records found.")
+            st.info("No expense records found for the selected date range.")
+            
+    elif report_type == "Comprehensive Financial Statement (P&L)":
+        st.subheader("Period Profit & Loss Statement")
+        
+        # Calculate Revenue
+        cursor.execute("SELECT SUM(total_amount) FROM sales WHERE sale_date BETWEEN ? AND ?", (start_str, end_str))
+        rev_res = cursor.fetchone()[0]
+        period_revenue = rev_res if rev_res else 0.0
+        
+        # Calculate Purchases
+        cursor.execute("SELECT SUM(total_amount) FROM purchases WHERE purchase_date BETWEEN ? AND ?", (start_str, end_str))
+        purch_res = cursor.fetchone()[0]
+        period_purchases = purch_res if purch_res else 0.0
+        
+        # Calculate Expenses
+        cursor.execute("SELECT SUM(amount) FROM expenses WHERE expense_date BETWEEN ? AND ?", (start_str, end_str))
+        exp_res = cursor.fetchone()[0]
+        period_expenses = exp_res if exp_res else 0.0
+        
+        period_gross_profit = period_revenue - period_purchases
+        period_net_profit = period_gross_profit - period_expenses
+        
+        col_p1, col_p2 = st.columns(2)
+        with col_p1:
+            st.metric("Total Revenue Inflow", f"Rs. {period_revenue:,.2f}")
+            st.metric("Total Purchase Outflow", f"Rs. {period_purchases:,.2f}")
+        with col_p2:
+            st.metric("Total Shop Expenses", f"Rs. {period_expenses:,.2f}")
+            st.metric("Net Period Profit", f"Rs. {period_net_profit:,.2f}", delta=f"Rs. {period_net_profit:,.2f}")
+            
+        st.markdown("---")
+        if period_net_profit >= 0:
+            st.success("The business is operating at a net profit for this selected duration.")
+        else:
+            st.error("The business has a net deficit for this selected duration.")
